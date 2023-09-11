@@ -17,6 +17,7 @@ class CNNLSTM(nn.Module):
        
     def forward(self, x_3d):
         hidden = None
+        print (x_3d.shape)
         for t in range(x_3d.size(1)):
             with torch.no_grad():
                 x = self.resnet(x_3d[:, t, :, :, :])  

@@ -16,7 +16,7 @@ from comet_ml import Experiment
 import segmentation_models_pytorch as smp
 from torchsummary import summary 
 from torch import nn 
-
+from cnn_lstm import CNNLSTM
 
 def train(network, train_loader, valid_loader, experiment ,criterion, opt, epochs, thresh=0.5, weights_dir='weights', save_every_ep=10):
 
@@ -62,23 +62,10 @@ def train(network, train_loader, valid_loader, experiment ,criterion, opt, epoch
                     opt.zero_grad()
 
                     with torch.set_grad_enabled(phase == 'train'):
-                        # se face forward propagation -> se calculeaza predictia
-                        # plt.imshow(ins[0][0].cpu(),cmap='gray')
-                        # plt.show()
+
                         output = network(ins)
-
-                        # plt.imshow(output[0][0].cpu().detach().numpy(),cmap='gray')
-                        # plt.show()
-                        # print(output.size())
-
-                        #second_output = Variable(torch.argmax(output,1).float(),requires_grad=True).cuda()
-                        # output[:, 1, :, :] #=> 8 x 128 x 128
-                        # tgs => 8 x 1 x 128 x 128
-                        # tgs.squeeze() #=> 8 x 128 x 128
-
-                        # se calculeaza eroarea/loss-ul
-
-                        loss = criterion(output[:, :, :, :], tgs)
+                        print (ins.shape, tgs.shape, output.shape)
+                        loss = criterion(output[:, : , :, :, :], tgs.squezee())
 
                         # deoarece reteaua nu include un strat de softmax, predictia finala trebuie calculata manual
                         current_predict = F.softmax(output, dim=1)[
@@ -96,18 +83,8 @@ def train(network, train_loader, valid_loader, experiment ,criterion, opt, epoch
                             current_predict = current_predict
                             current_target = tgs.type(torch.int).squeeze()
 
-                        # plt.imshow(current_target[0].cpu().detach().numpy())
-                        # plt.show()
-
-                        #print(current_predict.shape, current_target.shape)
-                        #print(current_predict.dtype, current_target.dtype)
-
                         dice_idx = metric(current_predict, current_target)
                         print(dice_idx.item)
-
-                        #print(dice_idx, dice_idx.shape, dice_idx.dtype )
-                        # print(current_predict,current_target)
-                        # print(f"\tAcc on batch {i}: {acc}")
 
                         if phase == 'train':
                             # se face backpropagation -> se calculeaza gradientii
@@ -127,14 +104,7 @@ def train(network, train_loader, valid_loader, experiment ,criterion, opt, epoch
                         if ep % save_every_ep == 0:
                             torch.save(
                                 network, f"{weights_dir}\\my_model{datetime.now().strftime('%m%d%Y_%H%M')}_e{ep}.pt")
-
-                    #     model_path = f"{weights_dir}\\model_epoch{ep}.pth"
-                    #     torch.save({'epoch': ep,
-                    #                 'model_state_dict': network.state_dict(),
-                    #                 'optimizer_state_dict': opt.state_dict(),
-                    #                 'loss': total_loss,
-                    #                 }, model_path)
-
+                            
                     pbar.update(ins.shape[0])
 
                 # Calculam loss-ul pt toate batch-urile dintr-o epoca
@@ -163,7 +133,7 @@ def main():
     print(f"CUDA available {torch.cuda.is_available()}")
     
     config = None
-    with open('config.yaml') as f:  # reads .yml/.yaml files
+    with open('config.yaml') as f: 
         config = yaml.safe_load(f)
     
     experiment = Experiment(
@@ -173,31 +143,15 @@ def main():
 
     exp_name = f"Experiment_Dice_index{datetime.now().strftime('%m%d%Y_%H%M')}"
 
-    cwd=pt.Path.cwd()
-    print (cwd)
-    exp_path = cwd.parent/'experiments'
-    exp_path = exp_path/ exp_name
+    exp_path="D:\\Angio\\ANGIO-LSTM\\Experimente"
+    exp_path = pt.Path(exp_path,exp_name)
     exp_path.mkdir(exist_ok=True)
     dir = "Weights"
     path = pt.Path(exp_path)/dir
     path.mkdir(exist_ok=True)
 
-    #network = UNet(n_channels=1, n_classes=2,final_activation=nn.Softmax(dim=1))
-
-    network = smp.Unet(
-        encoder_name="efficientnet-b1",        # choose encoder, e.g. mobilenet_v2 or efficientnet-b7
-        # use `imagenet` pre-trained weights for encoder initialization
-        encoder_weights="imagenet",
-        # model input channels (1 for gray-scale images, 3 for RGB, etc.)
-        in_channels=1,
-        # model output channels (number of classes in your dataset)
-        classes=2,
-    )
+    network=CNNLSTM(num_classes=2)
     summary(network)
-  
-  
-    
-
     experiment.log_parameters(config)
 
     yml_data = yaml.dump(config)
@@ -228,14 +182,6 @@ def main():
                      min_zoom=config['train']['min_zoom'], max_zoom=config['train']['max_zoom'])
         #TR.RandSpatialCropSamplesd(keys=["img", "seg"],num_samples=config['train']['rand_crop_samples'], roi_size=config['train']['rand_crop_size'],random_size=False),
     ])
-
-    #path_construct = glob.glob(config["data"]['data_path'])
-    #path_list = create_dataset_csv(path_construct)
-    #dataset_df = pd.DataFrame(path_list)
-
-    #dataset_df = split_dataset(dataset_df, split_per=config['data']['split_per'], seed=1)
-    # print(dataset_df.head(3))
-    # dataset_df.to_csv(config['data']['dataset_csv'])
 
     dataset_df = pd.read_csv(config['data']['dataset_csv'])
 

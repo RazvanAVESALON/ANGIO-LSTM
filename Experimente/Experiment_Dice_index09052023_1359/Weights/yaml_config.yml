@@ -1,0 +1,38 @@
+data:
+  annotation: clipping_points.json
+  data_path: D:\\date_angiografii\\data\\data
+  dataset_csv: D:\\Angio\\ANGIO-LSTM\\CSV_experimental.csv
+  img_size:
+  - 512
+  - 512
+  model: D:\\ai intro\\Angiografii\\PROIECT_ANGIOGRAFII\\experiments\\Expetimente_Segmentare\\Experiment_Dice_index02082023_1813\\Weights\\my_model02102023_1709_e350.pt
+  parent_dir_exp: D:\\ai intro\\Angiografii\\PROIECT_ANGIOGRAFII\\experiments\\Expetimente_Segmentare\\Experiment_Dice_index02082023_1813
+  split_per:
+    test: 0.1
+    train: 0.8
+    valid: 0.1
+test:
+  threshold: 0.5
+train:
+  alpha:
+  - 0.6
+  - 0.8
+  bs: 4
+  contrast_gamma:
+  - 1.5
+  - 2
+  contrast_prob: 0.5
+  epochs: 400
+  flip_prob: 0.5
+  flip_spatial_axis: 1
+  gibbs_noise_prob: 0.5
+  lr: 0.001
+  max_zoom: 1.5
+  min_zoom: 1.3
+  opt: Adam
+  rotate_prob: 0.5
+  rotate_range: 1.57
+  sigma:
+  - 0.1
+  - 1
+  zoom_prob: 0.5
