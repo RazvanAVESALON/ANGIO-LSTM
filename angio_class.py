@@ -27,88 +27,85 @@ class AngioClass(torch.utils.data.Dataset):
 
         return patient, acquisition, frame, header, annotations
 
-    def crop_colimator(self, frame, gt, info):
-
+    def crop_colimator(self, frame,info,clipping_points,frame_nr):
         img = frame.astype(np.float32)
         in_min = 0
         in_max = 2 ** info['BitsStored'] - 1
         out_min = 0
         out_max = 255
-        
         if in_max != out_max:
-            img = img.astype(np.float32) 
-            img = (img - in_min) * ((out_max - out_min) /
-                                    (in_max - in_min)) + out_min
+            img = img.astype(np.float32)
+            img = (img - in_min) * ((out_max - out_min) / (in_max - in_min)) + out_min
             img = np.rint(img)
             img.astype(np.uint8)
-
+            
+        # crop collimator
         img_edge = info['ImageEdges']
-        
+        print(img.shape)
         img_c = img[..., img_edge[2]:img_edge[3]+1, img_edge[0]:img_edge[1]+1]
-        new_gt = gt[..., img_edge[2]:img_edge[3]+1, img_edge[0]:img_edge[1]+1]
-        
-        img_c= cv2.resize(img_c,self.img_size, interpolation=cv2.INTER_AREA)
-        new_gt= cv2.resize(new_gt,self.img_size, interpolation=cv2.INTER_AREA)
-        return img_c, new_gt
+        print (img_c.shape)
+        bifurcation_point=[]
+        if str(frame_nr) in clipping_points:
+            bifurcation_point=clipping_points[str(frame_nr)]
+            bifurcation_point[1]=bifurcation_point[1]-info['ImageEdges'][0]
+            bifurcation_point[0]=bifurcation_point[0]-info['ImageEdges'][2]
+            if self.geometrics_transforms != None:
+                list_of_keypoints=[]
+                list_of_keypoints.append(tuple(bifurcation_point))
+                transformed=self.geometrics_transforms (image=img_c,keypoints=list_of_keypoints)
+                img_rsz=transformed['image']
+                print ('if',img_rsz.shape)
+                bifurcation_point=transformed['keypoints'][0]
+                print (bifurcation_point)
+        else: 
+            img_rsz= cv2.resize(img_c,self.img_size, interpolation=cv2.INTER_AREA)
+            print ('else',img_rsz.shape)
 
+        return img_rsz,bifurcation_point
+    
     def __getitem__(self, idx):
         img = np.load(self.dataset_df['images_path'][idx])['arr_0']
-        print (img.shape)
         with open(self.dataset_df['annotations_path'][idx]) as f:
             clipping_points = json.load(f)   
-        print (self.dataset_df['images_path'][idx])
-
-        ann= np.zeros(img.shape)   
-        print (ann)
-        for n in range(img.shape[0]):
-            print(n)
-            if clipping_points.get(str(n)):
-                ann[n]=cv2.circle(ann[n],[clipping_points[str(n)][1], clipping_points[str(n)][0]], 8, [255, 255, 255], -1)
-          
         if img.shape[0]>=12:
             new_img=img[:12, :, :] 
-            target=ann[:12,:,: ]
         else:
             new_img=np.zeros((12,512,512))
-            target = np.zeros((12,512,512), dtype=np.uint8)
             new_img[:img.shape[0],:,:]=img[:,:,:]
-            target[:ann.shape[0],:,:]=ann[:,:,:]
-            print (new_img.shape,target.shape)
+            
         with open(self.dataset_df['angio_loader_header'][idx]) as f:
             angio_loader = json.load(f)
             
         croped_colimator_img= np.zeros(new_img.shape, dtype=np.uint8)
         croped_colimator_gt= np.zeros(new_img.shape, dtype=np.uint8)
-      
+
         for n in range(new_img.shape[0]):
-            croped_colimator_img[n], croped_colimator_gt[n] = self.crop_colimator(new_img[n], target[n], angio_loader)
+           
+            croped_colimator_img[n],clipping_points[str(n)]= self.crop_colimator(new_img[n],angio_loader,clipping_points,n )                
+
+        print (clipping_points)    
         croped_colimator_gt = croped_colimator_gt/255
-        croped_colimator_img= croped_colimator_img/255
+        for n in range(new_img.shape[0]):
+            clipping_points[str(n)] =list(clipping_points[str(n)])
+            clipping_points[str(n)][0]=clipping_points[str(n)][0]/512
+            clipping_points[str(n)][1]=clipping_points[str(n)][1]/512
+        print (clipping_points)  
 
         x = np.zeros((12,3,512,512))
-        y = np.zeros((12,3,512,512))
+        y = clipping_points
         x[:,0,:,:]=croped_colimator_img[:,:,:]
-        y[:,0,:,:]=croped_colimator_gt[:,:,:]
         x[:,1,:,:]=croped_colimator_img[:,:,:]
-        y[:,1,:,:]=croped_colimator_gt[:,:,:]
         x[:,2,:,:]=croped_colimator_img[:,:,:]
-        y[:,2,:,:]=croped_colimator_gt[:,:,:]
-        print (x.shape,y.shape)
+        
+        
+        
+        
+        
+        
+        
         tensor_y = torch.from_numpy(y)
         tensor_x = torch.from_numpy(x)
-
-        # if self.pixel_transforms != None:
-
-        #     data_pixel = {"img": tensor_x}
-        #     tensor_x = self.pixel_transforms(data_pixel)["img"]
-
-        # if self.geometrics_transforms != None:
-        #     data_geo = {"img": tensor_x, "seg": tensor_y}
-        #     result = self.geometrics_transforms(data_geo)
-
-        #     tensor_x = result["img"]
-        #     tensor_y = result["seg"]
-            
+        
         return tensor_x.float(), tensor_y.float(), idx
 
 

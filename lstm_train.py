@@ -17,8 +17,8 @@ import segmentation_models_pytorch as smp
 from torchsummary import summary 
 from torch import nn 
 from cnn_lstm import CNNLSTM
-
-def train(network, train_loader, valid_loader, experiment ,criterion, opt, epochs, thresh=0.5, weights_dir='weights', save_every_ep=10):
+import albumentations as A 
+def train(network, train_loader, valid_loader, exp, criterion, opt, epochs, thresh=0.5, weights_dir='weights', save_every_ep=50):
 
     total_loss = {'train': [], 'valid': []}
     total_dice = {'train': [], 'valid': []}
@@ -52,39 +52,22 @@ def train(network, train_loader, valid_loader, experiment ,criterion, opt, epoch
             with tqdm(desc=phase, unit=' batch', total=len(loaders[phase].dataset)) as pbar:
                 for data in loaders[phase]:
                     ins, tgs, idx = data
-                    # print(data)
-                    #print(type(ins), type(tgs))
                     ins = ins.to(device)
                     tgs = tgs.to(device)
-                    #print (ins.size(),tgs.size())
-
-                    # seteaza toti gradientii la zero, deoarece PyTorch acumuleaza valorile lor dupa mai multe backward passes
                     opt.zero_grad()
 
                     with torch.set_grad_enabled(phase == 'train'):
-
+                        
                         output = network(ins)
-                        print (ins.shape, tgs.shape, output.shape)
-                        loss = criterion(output[:, : , :, :, :], tgs.squezee())
-
-                        # deoarece reteaua nu include un strat de softmax, predictia finala trebuie calculata manual
-                        current_predict = F.softmax(output, dim=1)[
-                            :, 1].float()
-                        current_predict[current_predict >= thresh] = 1.0
-                        current_predict[current_predict < thresh] = 0.0
-
-                        #plt.imshow(current_predict[0].cpu().detach().numpy(), cmap='gray')
-                        # plt.show()
-
+                        print (output.shape , tgs.squeeze())
+                        loss = criterion(output, tgs.squeeze())
                         if 'cuda' in device.type:
-                            current_predict = current_predict.cpu()
-                            current_target = tgs.cpu().type(torch.int).squeeze()
+                            output = output.cpu()
+                            tgs = tgs.cpu().type(torch.int).squeeze()
                         else:
-                            current_predict = current_predict
-                            current_target = tgs.type(torch.int).squeeze()
+                            tgs = tgs.type(torch.int).squeeze()
 
-                        dice_idx = metric(current_predict, current_target)
-                        print(dice_idx.item)
+                        mse = metric(output, tgs)
 
                         if phase == 'train':
                             # se face backpropagation -> se calculeaza gradientii
@@ -94,36 +77,36 @@ def train(network, train_loader, valid_loader, experiment ,criterion, opt, epoch
 
                     running_loss += loss.item() * ins.size(0)
 
-                    running_average += dice_idx.item() * ins.size(0)
-
-                    #print(running_average, dice_idx.item())
-                    #print(running_loss, loss.item())
+                    running_average += mse.item() * ins.size(0)
 
                     if phase == 'valid':
                         # salvam ponderile modelului dupa fiecare epoca
                         if ep % save_every_ep == 0:
                             torch.save(
-                                network, f"{weights_dir}\\my_model{datetime.now().strftime('%m%d%Y_%H%M')}_e{ep}.pt")
-                            
+                                network, f"{weights_dir}/my_model{datetime.now().strftime('%m%d%Y_%H%M')}_e{ep}.pt")
+
                     pbar.update(ins.shape[0])
 
                 # Calculam loss-ul pt toate batch-urile dintr-o epoca
                 total_loss[phase].append(
                     running_loss/len(loaders[phase].dataset))
 
+                loss_value = running_loss/len(loaders[phase].dataset)
+                mse_value = running_average/len(loaders[phase].dataset)
                 # Calculam acuratetea pt toate batch-urile dintr-o epoca
                 total_dice[phase].append(
                     running_average/len(loaders[phase].dataset))
 
-                postfix = f'error {total_loss[phase][-1]:.4f} dice {dice_idx*100:.2f}%'
+                postfix = f'error {total_loss[phase][-1]:.4f} MSE {mse*100:.2f}%'
                 pbar.set_postfix_str(postfix)
 
-                experiment.log_metrics(
-                    {f"{phase}_dice": total_dice[phase][-1], "loss": total_loss[-1]}, epoch=ep)
+                exp.log_metrics({f"{phase}MSE": mse_value,
+                                f"{phase}loss": loss_value}, epoch=ep)
 
                 # Resetam pt a acumula valorile dintr-o noua epoca
 
-    return {'loss': total_loss, 'dice': total_dice}
+    return {'loss': total_loss, 'MSE': total_dice}
+
 
 
 def main():
@@ -164,43 +147,29 @@ def main():
         TR.ToTensord(keys="img"),
     ])
 
-    pixel_t = TR.Compose([
-        TR.GaussianSmoothd(keys="img", sigma=config['train']['sigma']),
-        TR.RandGibbsNoised(
-            keys="img", prob=config['train']['gibbs_noise_prob'], alpha=config['train']['alpha']),
-        TR.RandAdjustContrastd(
-            keys="img", prob=config['train']['contrast_prob'], gamma=config['train']['contrast_gamma']),
-    ])
-
-    geometric_t = TR.Compose([
-
-        TR.RandRotated(keys=["img", "seg"], prob=config['train']['rotate_prob'],
-                       range_x=config['train']['rotate_range'], mode=['bilinear', 'nearest']),
-        TR.RandFlipd(keys=["img", "seg"], prob=config['train']['flip_prob'],
-                     spatial_axis=config['train']['flip_spatial_axis']),
-        TR.RandZoomd(keys=["img", "seg"], prob=config['train']['zoom_prob'],
-                     min_zoom=config['train']['min_zoom'], max_zoom=config['train']['max_zoom'])
-        #TR.RandSpatialCropSamplesd(keys=["img", "seg"],num_samples=config['train']['rand_crop_samples'], roi_size=config['train']['rand_crop_size'],random_size=False),
-    ])
+    geometric_t= A.Compose([
+        A.Resize(height=config['data']['img_size'][0] , width=config['data']['img_size'][1])
+    ],keypoint_params=A.KeypointParams(format='yx', remove_invisible=False))
 
     dataset_df = pd.read_csv(config['data']['dataset_csv'])
 
-    train_df = dataset_df.loc[dataset_df["subset"] == "train"]
-    train_ds = AngioClass(train_df, img_size=config['data']['img_size'],
-                          geometrics_transforms=geometric_t, pixel_transforms=pixel_t)
+    train_df = dataset_df.loc[dataset_df["subset"] == "train",:]
+    print(train_df)
+    train_ds = AngioClass(train_df, img_size=config['data']['img_size'],geometrics_transforms=geometric_t)
+
     train_loader = torch.utils.data.DataLoader(
-        train_ds, batch_size=config['train']['bs'], shuffle=True,)
-    print(train_loader)
+        train_ds, batch_size=config['train']['bs'], shuffle=True,drop_last=True)
 
     valid_df = dataset_df.loc[dataset_df["subset"] == "valid", :]
-    valid_ds = AngioClass(
-        valid_df, img_size=config['data']['img_size'], pixel_transforms=pixels)
+    print(valid_df)
+    valid_ds = AngioClass(valid_df, img_size=config['data']['img_size'],geometrics_transforms=geometric_t)
     valid_loader = torch.utils.data.DataLoader(
-        valid_ds, batch_size=config['train']['bs'], shuffle=False)
+        valid_ds, batch_size=config['train']['bs'], shuffle=False,drop_last=True)
 
     print(f"# Train: {len(train_ds)} # Valid: {len(valid_ds)}")
+    criterion = nn.MSELoss()
 
-    criterion = DiceCELoss(to_onehot_y=True, batch=config['train']['bs'])
+    network=CNNLSTM(num_classes=2)
 
     if config['train']['opt'] == 'Adam':
         opt = torch.optim.Adam(network.parameters(), lr=config['train']['lr'])
@@ -210,10 +179,9 @@ def main():
         opt = torch.optim.RMSprop(
             network.parameters(), lr=config['train']['lr'])
 
-    history = train(network, train_loader, valid_loader,experiment,  criterion, opt,
+    history = train(network, train_loader, valid_loader, experiment, criterion, opt,
                     epochs=config['train']['epochs'], thresh=config['test']['threshold'], weights_dir=path)
     plot_acc_loss(history, path)
-
 
 if __name__ == "__main__":
     main()
