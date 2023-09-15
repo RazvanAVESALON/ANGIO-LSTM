@@ -64,6 +64,7 @@ class AngioClass(torch.utils.data.Dataset):
         return img_rsz,bifurcation_point
     
     def __getitem__(self, idx):
+        
         img = np.load(self.dataset_df['images_path'][idx])['arr_0']
         with open(self.dataset_df['annotations_path'][idx]) as f:
             clipping_points = json.load(f)   
