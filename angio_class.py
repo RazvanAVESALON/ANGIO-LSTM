@@ -89,22 +89,22 @@ class AngioClass(torch.utils.data.Dataset):
         croped_colimator_gt = croped_colimator_gt/255
         for n in range(new_img.shape[0]):
             clipping_points[str(n)] =list(clipping_points[str(n)])
-            clipping_points[str(n)][0]=clipping_points[str(n)][0]/512
-            clipping_points[str(n)][1]=clipping_points[str(n)][1]/512
         print (clipping_points)  
-        BSxN_framesX2
+        
         x = np.zeros((12,3,512,512))
-        y = clipping_points
+        data = np.empty((12,2))
+        for n in range(new_img.shape[0]):
+            if  clipping_points[str(n)]:
+                data[n]=clipping_points[str(n)]
+            else: 
+                data[n]=[0,0]
+
+        y=data/512
+        print('y',y)
         x[:,0,:,:]=croped_colimator_img[:,:,:]
         x[:,1,:,:]=croped_colimator_img[:,:,:]
         x[:,2,:,:]=croped_colimator_img[:,:,:]
-        
-        
-        
-        
-        
-        
-        
+
         tensor_y = torch.from_numpy(y)
         tensor_x = torch.from_numpy(x)
         
