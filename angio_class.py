@@ -66,6 +66,7 @@ class AngioClass(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         
         img = np.load(self.dataset_df['images_path'][idx])['arr_0']
+        
         with open(self.dataset_df['annotations_path'][idx]) as f:
             clipping_points = json.load(f)   
         if img.shape[0]>=12:
@@ -91,7 +92,7 @@ class AngioClass(torch.utils.data.Dataset):
             clipping_points[str(n)][0]=clipping_points[str(n)][0]/512
             clipping_points[str(n)][1]=clipping_points[str(n)][1]/512
         print (clipping_points)  
-
+        BSxN_framesX2
         x = np.zeros((12,3,512,512))
         y = clipping_points
         x[:,0,:,:]=croped_colimator_img[:,:,:]
