@@ -100,7 +100,8 @@ class AngioClass(torch.utils.data.Dataset):
                 data[n]=[0,0]
 
         y=data/512
-        print('y',y)
+        y=np.expand_dims(y,axis=0)
+        print('y',y.shape)
         x[:,0,:,:]=croped_colimator_img[:,:,:]
         x[:,1,:,:]=croped_colimator_img[:,:,:]
         x[:,2,:,:]=croped_colimator_img[:,:,:]
