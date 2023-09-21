@@ -18,6 +18,7 @@ from torchsummary import summary
 from torch import nn 
 from cnn_lstm import CNNLSTM
 import albumentations as A 
+import matplotlib.pyplot as plt 
 def train(network, train_loader, valid_loader, exp, criterion, opt, epochs, thresh=0.5, weights_dir='weights', save_every_ep=50):
 
     total_loss = {'train': [], 'valid': []}
@@ -52,6 +53,8 @@ def train(network, train_loader, valid_loader, exp, criterion, opt, epochs, thre
             with tqdm(desc=phase, unit=' batch', total=len(loaders[phase].dataset)) as pbar:
                 for data in loaders[phase]:
                     ins, tgs, idx = data
+                    
+                    print ('Input shape :',ins.shape, 'BF Point:' , tgs.shape)
                     ins = ins.to(device)
                     tgs = tgs.to(device)
                     opt.zero_grad()
@@ -154,34 +157,52 @@ def main():
     dataset_df = pd.read_csv(config['data']['dataset_csv'])
 
     train_df = dataset_df.loc[dataset_df["subset"] == "train",:]
-    print(train_df)
+    print("train_df", train_df.head())
+    
     train_ds = AngioClass(train_df, img_size=config['data']['img_size'],geometrics_transforms=geometric_t)
-
+    print(f"# Train: {len(train_ds)}")
+    print(train_ds[0][0].shape, train_ds[0][1].shape, train_ds[0][2])
     train_loader = torch.utils.data.DataLoader(
         train_ds, batch_size=config['train']['bs'], shuffle=True,drop_last=True)
+    
+    for i, data in enumerate(train_loader):
+        ins, tgs, idx = data
+        print (f'{i} Input shape :',ins.shape, 'BF Point:' , tgs.shape)
+        fig, ax = plt.subplots(1, 12, figsize=(20, 5))
+        for j in range(ins.shape[1]):
+            ax[j].imshow(ins[0][j][0], cmap='gray')
+            ax[j].set_title(f"Frame {j}")
+            print(f"frame {j}", ins[0][j].min(), ins[0][j].max())
+            
+            print(f"tg point frame {j}", tgs[0][j])
+            # if (j + 1) % 5 == 0:
+            #     break
+        plt.show()
+        if (i + 1) % 6 == 0:
+            break
 
-    valid_df = dataset_df.loc[dataset_df["subset"] == "valid", :]
-    print(valid_df)
-    valid_ds = AngioClass(valid_df, img_size=config['data']['img_size'],geometrics_transforms=geometric_t)
-    valid_loader = torch.utils.data.DataLoader(
-        valid_ds, batch_size=config['train']['bs'], shuffle=False,drop_last=True)
+    # valid_df = dataset_df.loc[dataset_df["subset"] == "valid", :]
+    # print(valid_df)
+    # valid_ds = AngioClass(valid_df, img_size=config['data']['img_size'],geometrics_transforms=geometric_t)
+    # valid_loader = torch.utils.data.DataLoader(
+    #     valid_ds, batch_size=config['train']['bs'], shuffle=False,drop_last=True)
 
-    print(f"# Train: {len(train_ds)} # Valid: {len(valid_ds)}")
-    criterion = nn.MSELoss()
+    # print(f"# Train: {len(train_ds)} # Valid: {len(valid_ds)}")
+    # criterion = nn.MSELoss()
 
-    network=CNNLSTM(num_classes=2)
+    # network=CNNLSTM(num_classes=2)
 
-    if config['train']['opt'] == 'Adam':
-        opt = torch.optim.Adam(network.parameters(), lr=config['train']['lr'])
-    elif config['train']['opt'] == 'SGD':
-        opt = torch.optim.SGD(network.parameters(), lr=config['train']['lr'])
-    elif config['train']['opt'] == "RMSprop":
-        opt = torch.optim.RMSprop(
-            network.parameters(), lr=config['train']['lr'])
+    # if config['train']['opt'] == 'Adam':
+    #     opt = torch.optim.Adam(network.parameters(), lr=config['train']['lr'])
+    # elif config['train']['opt'] == 'SGD':
+    #     opt = torch.optim.SGD(network.parameters(), lr=config['train']['lr'])
+    # elif config['train']['opt'] == "RMSprop":
+    #     opt = torch.optim.RMSprop(
+    #         network.parameters(), lr=config['train']['lr'])
 
-    history = train(network, train_loader, valid_loader, experiment, criterion, opt,
-                    epochs=config['train']['epochs'], thresh=config['test']['threshold'], weights_dir=path)
-    plot_acc_loss(history, path)
+    # history = train(network, train_loader, valid_loader, experiment, criterion, opt,
+    #                 epochs=config['train']['epochs'], thresh=config['test']['threshold'], weights_dir=path)
+    # plot_acc_loss(history, path)
 
 if __name__ == "__main__":
     main()
