@@ -4,8 +4,6 @@ import torchvision.models as models
 from torch.nn.utils.rnn import pack_padded_sequence
 import torch.nn.functional as F
 from torchvision.models import resnet18, resnet34
-
-
 class CNNLSTM(nn.Module):
     def __init__(self, num_classes=2):
         super(CNNLSTM, self).__init__()

@@ -4,14 +4,19 @@ import numpy as np
 import cv2
 import json
 import torch
-
-
+import yaml
+import matplotlib.pyplot as plt 
+config = None
+with open('config.yaml') as f: 
+    config = yaml.safe_load(f)
 class AngioClass(torch.utils.data.Dataset):
     def __init__(self, dataset_df, img_size, geometrics_transforms=None, pixel_transforms=None):
         self.dataset_df = dataset_df.reset_index(drop=True)
         self.img_size = tuple(img_size)
         self.pixel_transforms = pixel_transforms
         self.geometrics_transforms = geometrics_transforms
+        self.number_of_ch=3
+        self.nr_coordonates=2
 
     def __len__(self):
 
@@ -38,12 +43,9 @@ class AngioClass(torch.utils.data.Dataset):
             img = (img - in_min) * ((out_max - out_min) / (in_max - in_min)) + out_min
             img = np.rint(img)
             img.astype(np.uint8)
-            
-        # crop collimator
+        
         img_edge = info['ImageEdges']
-        #print(img.shape)
         img_c = img[..., img_edge[2]:img_edge[3]+1, img_edge[0]:img_edge[1]+1]
-        #print (img_c.shape)
         bifurcation_point=[]
         if str(frame_nr) in clipping_points:
             bifurcation_point=clipping_points[str(frame_nr)]
@@ -54,12 +56,10 @@ class AngioClass(torch.utils.data.Dataset):
                 list_of_keypoints.append(tuple(bifurcation_point))
                 transformed=self.geometrics_transforms (image=img_c,keypoints=list_of_keypoints)
                 img_rsz=transformed['image']
-                #print ('if',img_rsz.shape)
                 bifurcation_point=transformed['keypoints'][0]
-                #print (bifurcation_point)
+
         else: 
             img_rsz= cv2.resize(img_c,self.img_size, interpolation=cv2.INTER_AREA)
-            #print ('else',img_rsz.shape)
 
         return img_rsz,bifurcation_point
     
@@ -69,10 +69,10 @@ class AngioClass(torch.utils.data.Dataset):
         
         with open(self.dataset_df['annotations_path'][idx]) as f:
             clipping_points = json.load(f)   
-        if img.shape[0]>=12:
-            new_img=img[:12, :, :] 
+        if img.shape[0]>=config['data']['nr_frames']:
+            new_img=img[:config['data']['nr_frames'], :, :] 
         else:
-            new_img=np.zeros((12,512,512))
+            new_img=np.zeros((config['data']['nr_frames'],config['data']['img_size'][0],config['data']['img_size'][1]))
             new_img[:img.shape[0],:,:]=img[:,:,:]
             
         with open(self.dataset_df['angio_loader_header'][idx]) as f:
@@ -83,15 +83,14 @@ class AngioClass(torch.utils.data.Dataset):
         for n in range(new_img.shape[0]):
            
             croped_colimator_img[n],clipping_points[str(n)]= self.crop_colimator(new_img[n],angio_loader,clipping_points,n )                
-
-        #print (clipping_points)    
+ 
         croped_colimator_img = croped_colimator_img/255
         for n in range(new_img.shape[0]):
             clipping_points[str(n)] =list(clipping_points[str(n)])
-        #print (clipping_points)  
+
         
-        x = np.zeros((12,3,512,512))
-        data = np.empty((12,2))
+        x = np.zeros((config['data']['nr_frames'],self.number_of_ch,config['data']['img_size'][0],config['data']['img_size'][1]))
+        data = np.empty((config['data']['nr_frames'],self.nr_coordonates))
         for n in range(new_img.shape[0]):
             if  clipping_points[str(n)]:
                 data[n]=clipping_points[str(n)]
@@ -99,11 +98,9 @@ class AngioClass(torch.utils.data.Dataset):
                 data[n]=[0,0]
 
         y=data/512
-        #print('y',y.shape)
         x[:,0,:,:]=croped_colimator_img[:,:,:]
         x[:,1,:,:]=croped_colimator_img[:,:,:]
-        x[:,2,:,:]=croped_colimator_img[:,:,:]
-        #x=x/255
+        x[:,2,:,:]=croped_colimator_img[:,:,:]        
         tensor_y = torch.from_numpy(y)
         tensor_x = torch.from_numpy(x)
         

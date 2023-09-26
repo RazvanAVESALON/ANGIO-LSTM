@@ -10,15 +10,16 @@ import torchmetrics
 from tqdm import tqdm
 from datetime import datetime
 from angio_class import AngioClass, plot_acc_loss
-from monai.losses import DiceCELoss
 from torchmetrics import MeanSquaredError
 from comet_ml import Experiment
-import segmentation_models_pytorch as smp
 from torchsummary import summary 
-from torch import nn 
 from cnn_lstm import CNNLSTM
 import albumentations as A 
 import matplotlib.pyplot as plt 
+from lighting_train import LitAutoEncoder
+import lightning as L
+from lightning.pytorch.accelerators import find_usable_cuda_devices
+
 def train(network, train_loader, valid_loader, exp, criterion, opt, epochs, thresh=0.5, weights_dir='weights', save_every_ep=50):
 
     total_loss = {'train': [], 'valid': []}
@@ -46,9 +47,9 @@ def train(network, train_loader, valid_loader, exp, criterion, opt, epochs, thre
             running_average = 0.0
 
             if phase == 'train':
-                network.train()  # Set model to training mode
+                network.train()
             else:
-                network.eval()   # Set model to evaluate mode
+                network.eval()
 
             with tqdm(desc=phase, unit=' batch', total=len(loaders[phase].dataset)) as pbar:
                 for data in loaders[phase]:
@@ -73,9 +74,7 @@ def train(network, train_loader, valid_loader, exp, criterion, opt, epochs, thre
                         mse = metric(output, tgs)
 
                         if phase == 'train':
-                            # se face backpropagation -> se calculeaza gradientii
                             loss.backward()
-                            # se actualizează weights-urile
                             opt.step()
 
                     running_loss += loss.item() * ins.size(0)
@@ -83,20 +82,19 @@ def train(network, train_loader, valid_loader, exp, criterion, opt, epochs, thre
                     running_average += mse.item() * ins.size(0)
 
                     if phase == 'valid':
-                        # salvam ponderile modelului dupa fiecare epoca
                         if ep % save_every_ep == 0:
                             torch.save(
                                 network, f"{weights_dir}/my_model{datetime.now().strftime('%m%d%Y_%H%M')}_e{ep}.pt")
 
                     pbar.update(ins.shape[0])
 
-                # Calculam loss-ul pt toate batch-urile dintr-o epoca
+
                 total_loss[phase].append(
                     running_loss/len(loaders[phase].dataset))
 
                 loss_value = running_loss/len(loaders[phase].dataset)
                 mse_value = running_average/len(loaders[phase].dataset)
-                # Calculam acuratetea pt toate batch-urile dintr-o epoca
+
                 total_dice[phase].append(
                     running_average/len(loaders[phase].dataset))
 
@@ -106,11 +104,9 @@ def train(network, train_loader, valid_loader, exp, criterion, opt, epochs, thre
                 exp.log_metrics({f"{phase}MSE": mse_value,
                                 f"{phase}loss": loss_value}, epoch=ep)
 
-                # Resetam pt a acumula valorile dintr-o noua epoca
+
 
     return {'loss': total_loss, 'MSE': total_dice}
-
-
 
 def main():
     print(f"pyTorch version {torch.__version__}")
@@ -149,7 +145,6 @@ def main():
 
         TR.ToTensord(keys="img"),
     ])
-
     geometric_t= A.Compose([
         A.Resize(height=config['data']['img_size'][0] , width=config['data']['img_size'][1])
     ],keypoint_params=A.KeypointParams(format='yx', remove_invisible=False))
@@ -157,35 +152,39 @@ def main():
     dataset_df = pd.read_csv(config['data']['dataset_csv'])
 
     train_df = dataset_df.loc[dataset_df["subset"] == "train",:]
-    print("train_df", train_df.head())
-    
     train_ds = AngioClass(train_df, img_size=config['data']['img_size'],geometrics_transforms=geometric_t)
-    print(f"# Train: {len(train_ds)}")
-    print(train_ds[0][0].shape, train_ds[0][1].shape, train_ds[0][2])
-    train_loader = torch.utils.data.DataLoader(
-        train_ds, batch_size=config['train']['bs'], shuffle=True,drop_last=True)
+    train_loader = torch.utils.data.DataLoader(train_ds, batch_size=config['train']['bs'], shuffle=True,drop_last=True)
     
-    for i, data in enumerate(train_loader):
-        ins, tgs, idx = data
-        print (f'{i} Input shape :',ins.shape, 'BF Point:' , tgs.shape)
-        fig, ax = plt.subplots(1, 12, figsize=(20, 5))
-        for j in range(ins.shape[1]):
-            ax[j].imshow(ins[0][j][0], cmap='gray')
-            ax[j].set_title(f"Frame {j}")
-            print(f"frame {j}", ins[0][j].min(), ins[0][j].max())
+    print (train_loader)
+    for data in train_loader:
+        inputs , targets , idx = data 
+        
+        output = network(inputs)
+        print (output) 
+    # for i, data in enumerate(train_loader):
+    #     ins, tgs, idx = data
+    #     print (f'{i} Input shape :',ins.shape, 'BF Point:' , tgs.shape)
+    #     fig, ax = plt.subplots(1, 12, figsize=(20, 5))
+    #     for j in range(ins.shape[1]):
+    #         ax[j].imshow(ins[0][j][0], cmap='gray')
+    #         ax[j].set_title(f"Frame {j}")
+    #         print(f"frame {j}", ins[0][j].min(), ins[0][j].max())
             
-            print(f"tg point frame {j}", tgs[0][j])
-            # if (j + 1) % 5 == 0:
-            #     break
-        plt.show()
-        if (i + 1) % 6 == 0:
-            break
+    #         print(f"tg point frame {j}", tgs[0][j])
+    #         # if (j + 1) % 5 == 0:
+    #         #     break
+    #     plt.show()
+    #     if (i + 1) % 6 == 0:
+    #         break
+    
+    
+    # trainer = L.Trainer(max_steps=1000)
+    # trainer.fit(LitAutoEncoder(network=network), train_loader, )
 
     # valid_df = dataset_df.loc[dataset_df["subset"] == "valid", :]
     # print(valid_df)
     # valid_ds = AngioClass(valid_df, img_size=config['data']['img_size'],geometrics_transforms=geometric_t)
-    # valid_loader = torch.utils.data.DataLoader(
-    #     valid_ds, batch_size=config['train']['bs'], shuffle=False,drop_last=True)
+    # valid_loader = torch.utils.data.DataLoader(valid_ds, batch_size=config['train']['bs'], shuffle=False,drop_last=True)
 
     # print(f"# Train: {len(train_ds)} # Valid: {len(valid_ds)}")
     # criterion = nn.MSELoss()

@@ -5,6 +5,7 @@ data:
   parent_dir_exp: D:\\ai intro\\Angiografii\\PROIECT_ANGIOGRAFII\\experiments\\Expetimente_Segmentare\\Experiment_Dice_index02082023_1813
   model: D:\\ai intro\\Angiografii\\PROIECT_ANGIOGRAFII\\experiments\\Expetimente_Segmentare\\Experiment_Dice_index02082023_1813\\Weights\\my_model02102023_1709_e350.pt
   img_size: [512,512]
+  nr_frames: 12 
   split_per:
     train: 0.8
     valid: 0.1
