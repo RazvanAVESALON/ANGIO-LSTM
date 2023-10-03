@@ -9,17 +9,17 @@ import monai.transforms as TR
 import torchmetrics
 from tqdm import tqdm
 from datetime import datetime
-from angio_class import AngioClass, plot_acc_loss
+from angio_class import AngioClass
 from torchmetrics import MeanSquaredError
 from comet_ml import Experiment
 from torchsummary import summary 
 from cnn_lstm import CNNLSTM
 import albumentations as A 
-import matplotlib.pyplot as plt 
 from lighting_train import LitAutoEncoder
 import lightning as L
 from lightning.pytorch.accelerators import find_usable_cuda_devices
-
+#from cnn_lstm_rshp import CNNLSTM
+import torch.nn as nn 
 def train(network, train_loader, valid_loader, exp, criterion, opt, epochs, thresh=0.5, weights_dir='weights', save_every_ep=50):
 
     total_loss = {'train': [], 'valid': []}
@@ -36,7 +36,6 @@ def train(network, train_loader, valid_loader, exp, criterion, opt, epochs, thre
     metric = MeanSquaredError()
     network.to(device)
     criterion.to(device)
-
     for ep in range(epochs):
 
         print(f"[INFO] Epoch {ep}/{epochs - 1}")
@@ -63,6 +62,7 @@ def train(network, train_loader, valid_loader, exp, criterion, opt, epochs, thre
                     with torch.set_grad_enabled(phase == 'train'):
                         
                         output = network(ins)
+                        output = output.to(device)
                         print (output.shape , tgs.squeeze())
                         loss = criterion(output, tgs.squeeze())
                         if 'cuda' in device.type:
@@ -132,7 +132,7 @@ def main():
     path = pt.Path(exp_path)/dir
     path.mkdir(exist_ok=True)
 
-    network=CNNLSTM(num_classes=2)
+    network=CNNLSTM(num_classes=2,bs=config['train']['bs'])
     summary(network)
     experiment.log_parameters(config)
 
@@ -155,12 +155,19 @@ def main():
     train_ds = AngioClass(train_df, img_size=config['data']['img_size'],geometrics_transforms=geometric_t)
     train_loader = torch.utils.data.DataLoader(train_ds, batch_size=config['train']['bs'], shuffle=True,drop_last=True)
     
-    print (train_loader)
-    for data in train_loader:
-        inputs , targets , idx = data 
+    
+    # print (train_loader)
+    # for data in train_loader:
         
-        output = network(inputs)
-        print (output) 
+    #     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+      
+    #     inputs , targets , idx = data 
+        
+    #     inputs = inputs.to(device)
+    #     targets = targets.to(device)
+    #     print ("Input:",inputs.shape,"Target:",targets.shape) 
+    #     output = network(inputs)
+    #     print("outpu:",output.shape)
     # for i, data in enumerate(train_loader):
     #     ins, tgs, idx = data
     #     print (f'{i} Input shape :',ins.shape, 'BF Point:' , tgs.shape)
@@ -181,27 +188,25 @@ def main():
     # trainer = L.Trainer(max_steps=1000)
     # trainer.fit(LitAutoEncoder(network=network), train_loader, )
 
-    # valid_df = dataset_df.loc[dataset_df["subset"] == "valid", :]
-    # print(valid_df)
-    # valid_ds = AngioClass(valid_df, img_size=config['data']['img_size'],geometrics_transforms=geometric_t)
-    # valid_loader = torch.utils.data.DataLoader(valid_ds, batch_size=config['train']['bs'], shuffle=False,drop_last=True)
+    valid_df = dataset_df.loc[dataset_df["subset"] == "valid", :]
+    print(valid_df)
+    valid_ds = AngioClass(valid_df, img_size=config['data']['img_size'],geometrics_transforms=geometric_t)
+    valid_loader = torch.utils.data.DataLoader(valid_ds, batch_size=config['train']['bs'], shuffle=False,drop_last=True)
 
-    # print(f"# Train: {len(train_ds)} # Valid: {len(valid_ds)}")
-    # criterion = nn.MSELoss()
+    print(f"# Train: {len(train_ds)} # Valid: {len(valid_ds)}")
+    criterion = nn.MSELoss()
 
-    # network=CNNLSTM(num_classes=2)
+    if config['train']['opt'] == 'Adam':
+        opt = torch.optim.Adam(network.parameters(), lr=config['train']['lr'])
+    elif config['train']['opt'] == 'SGD':
+        opt = torch.optim.SGD(network.parameters(), lr=config['train']['lr'])
+    elif config['train']['opt'] == "RMSprop":
+        opt = torch.optim.RMSprop(
+            network.parameters(), lr=config['train']['lr'])
 
-    # if config['train']['opt'] == 'Adam':
-    #     opt = torch.optim.Adam(network.parameters(), lr=config['train']['lr'])
-    # elif config['train']['opt'] == 'SGD':
-    #     opt = torch.optim.SGD(network.parameters(), lr=config['train']['lr'])
-    # elif config['train']['opt'] == "RMSprop":
-    #     opt = torch.optim.RMSprop(
-    #         network.parameters(), lr=config['train']['lr'])
-
-    # history = train(network, train_loader, valid_loader, experiment, criterion, opt,
-    #                 epochs=config['train']['epochs'], thresh=config['test']['threshold'], weights_dir=path)
-    # plot_acc_loss(history, path)
+    history = train(network, train_loader, valid_loader, experiment, criterion, opt,
+                    epochs=config['train']['epochs'], thresh=config['test']['threshold'], weights_dir=path)
+    #plot_acc_loss(history, path)
 
 if __name__ == "__main__":
     main()
