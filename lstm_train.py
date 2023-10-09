@@ -132,7 +132,7 @@ def main():
     path = pt.Path(exp_path)/dir
     path.mkdir(exist_ok=True)
 
-    network=CNNLSTM(num_classes=2,bs=config['train']['bs'])
+    network=CNNLSTM(num_classes=2)
     summary(network)
     experiment.log_parameters(config)
 
@@ -185,17 +185,12 @@ def main():
     #         break
     
     
-    # trainer = L.Trainer(max_steps=1000)
-    # trainer.fit(LitAutoEncoder(network=network), train_loader, )
+   
 
     valid_df = dataset_df.loc[dataset_df["subset"] == "valid", :]
     print(valid_df)
     valid_ds = AngioClass(valid_df, img_size=config['data']['img_size'],geometrics_transforms=geometric_t)
-    valid_loader = torch.utils.data.DataLoader(valid_ds, batch_size=config['train']['bs'], shuffle=False,drop_last=True)
-
-    print(f"# Train: {len(train_ds)} # Valid: {len(valid_ds)}")
-    criterion = nn.MSELoss()
-
+    valid_loader = torch.utils.data.DataLoader(valid_ds, batch_size=config['train']['bs'],shuffle=False,drop_last=True)
     if config['train']['opt'] == 'Adam':
         opt = torch.optim.Adam(network.parameters(), lr=config['train']['lr'])
     elif config['train']['opt'] == 'SGD':
@@ -203,10 +198,27 @@ def main():
     elif config['train']['opt'] == "RMSprop":
         opt = torch.optim.RMSprop(
             network.parameters(), lr=config['train']['lr'])
+    
+  
+    
+    trainer = L.Trainer(max_steps=100,accelerator='gpu')
+    trainer.fit(LitAutoEncoder(network,config['train']['opt'],config['train']['lr']), train_loader,valid_loader)
+   
+    # print(f"# Train: {len(train_ds)} # Valid: {len(valid_ds)}")
+    # 
 
-    history = train(network, train_loader, valid_loader, experiment, criterion, opt,
-                    epochs=config['train']['epochs'], thresh=config['test']['threshold'], weights_dir=path)
+    # if config['train']['opt'] == 'Adam':
+    #     opt = torch.optim.Adam(network.parameters(), lr=config['train']['lr'])
+    # elif config['train']['opt'] == 'SGD':
+    #     opt = torch.optim.SGD(network.parameters(), lr=config['train']['lr'])
+    # elif config['train']['opt'] == "RMSprop":
+    #     opt = torch.optim.RMSprop(
+    #         network.parameters(), lr=config['train']['lr'])
+
+    # history = train(network, train_loader, valid_loader, experiment, criterion, opt,
+    #                 epochs=config['train']['epochs'], thresh=config['test']['threshold'], weights_dir=path)
     #plot_acc_loss(history, path)
 
 if __name__ == "__main__":
     main()
+
