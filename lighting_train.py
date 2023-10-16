@@ -7,11 +7,13 @@ from torchmetrics import MeanSquaredError
 
 
 class LitAngio(L.LightningModule):
-    def __init__(self, network, opt_ch, lr):
+    def __init__(self,hparams,network=None, opt_ch=None, lr=None,experiment=None):
         super().__init__()
         self.network = network
         self.opt_ch = opt_ch
         self.lr = lr
+        self.experimet=experiment
+        self.hparams = hparams
 
     def configure_optimizers(self):
         if self.opt_ch == "Adam":
@@ -44,7 +46,9 @@ class LitAngio(L.LightningModule):
             prog_bar=True,
             logger=True,
         )
-        return loss
+        self.experimet.log_metrics({f"Train_MSE": mse_train,
+                        f"Train_loss": loss}, epoch=self.current_epoch)
+        return loss 
 
     def validation_step(self, valid_batch, batch_idx):
         inputs, target, idx = valid_batch
@@ -58,4 +62,19 @@ class LitAngio(L.LightningModule):
         print(output.shape, target.shape)
         self.log("val_loss", loss_val)
         self.log("mse_loss", mse_val)
-        return loss_val
+        return loss_val 
+    
+    def test_step(self, test_batch, batch_idx):
+        # this is the test loop
+        inputs, targets, idx = test_batch
+        self.network.eval()
+        output = self.network(inputs)
+        output = output.to("cuda")
+        print(output.shape, targets.shape)
+        criterion = nn.MSELoss().to("cuda")
+        loss_test = criterion(output, targets)
+        mse_metric = MeanSquaredError().to("cuda")
+        mse_test = mse_metric(output, targets)
+        self.log("test_loss", loss_test)
+        self.log("self_loss", mse_test)
+        return loss_test

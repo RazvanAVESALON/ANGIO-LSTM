@@ -91,13 +91,19 @@ def main():
     elif config["train"]["opt"] == "RMSprop":
         opt = torch.optim.RMSprop(network.parameters(), lr=config["train"]["lr"])
 
-    trainer = L.Trainer(max_steps=100, accelerator="gpu")
+    test_df = dataset_df.loc[dataset_df["subset"] == "test", :]
+    test_ds = AngioClass(test_df, img_size=config["data"]["img_size"],geometrics_transforms=geometric_t)
+    # print(test_ds[0])
+
+    test_loader = torch.utils.data.DataLoader(
+        test_ds, batch_size=config["train"]["bs"], shuffle=False)
+    trainer = L.Trainer(max_epochs=1, accelerator="gpu",default_root_dir=path)
     trainer.fit(
-        LitAngio(network, config["train"]["opt"], config["train"]["lr"]),
+        LitAngio(network, config["train"]["opt"], config["train"]["lr"], experiment),
         train_loader,
         valid_loader,
     )
-
+    trainer.test(LitAngio, dataloaders=test_loader)
 
 if __name__ == "__main__":
     main()
