@@ -1,4 +1,3 @@
-
 import pandas as pd
 import pathlib as pt
 import yaml
@@ -15,6 +14,11 @@ from cnn_lstm import CNNLSTM
 import albumentations as A
 from lighting_train import LitAngio
 import lightning as L
+import cv2
+from skimage.color import gray2rgb
+import numpy as np
+import imageio
+import os
 
 
 # from cnn_lstm_rshp import CNNLSTM
@@ -34,29 +38,26 @@ def main():
         workspace="razvanavesalon",
     )
 
-    exp_name = f"Experiment_Dice_index{datetime.now().strftime('%m%d%Y_%H%M')}"
+    directory = f"Test{datetime.now().strftime('%m%d%Y_%H%M')}"
+    parent_dir = config["data"]["parent_dir_exp"]
+    test_path = pt.Path(parent_dir) / directory
+    test_path.mkdir(exist_ok=True)
 
-    exp_path = "D:\\Angio\\ANGIO-LSTM\\Experimente"
-    exp_path = pt.Path(exp_path, exp_name)
-    exp_path.mkdir(exist_ok=True)
-    dir = "Weights"
-    path = pt.Path(exp_path) / dir
-    path.mkdir(exist_ok=True)
+    csv_path = pt.Path(test_path) / r"Statistics.csv"
+    gif_path = pt.Path(test_path) / r"Gif_prediction_overlap"
+    gif_path.mkdir(exist_ok=True)
+    overlap_pred_path = pt.Path(test_path) / r"Predictii_Overlap"
+    overlap_pred_path.mkdir(exist_ok=True)
 
     network = CNNLSTM(num_classes=2)
     summary(network)
     experiment.log_parameters(config)
 
     yml_data = yaml.dump(config)
-    f = open(f"{path}\\yaml_config.yml", "w+")
+    f = open(f"{test_path}\\yaml_config.yml", "w+")
     f.write(yml_data)
     f.close()
 
-    pixels = T.Compose(
-        [
-            TR.ToTensord(keys="img"),
-        ]
-    )
     geometric_t = A.Compose(
         [
             A.Resize(
@@ -69,25 +70,36 @@ def main():
 
     dataset_df = pd.read_csv(config["data"]["dataset_csv"])
     test_df = dataset_df.loc[dataset_df["subset"] == "test", :]
-    test_ds = AngioClass(test_df, img_size=config["data"]["img_size"],geometrics_transforms=geometric_t)
+    test_ds = AngioClass(
+        test_df, img_size=config["data"]["img_size"], geometrics_transforms=geometric_t
+    )
 
     test_loader = torch.utils.data.DataLoader(
-        test_ds, batch_size=config["train"]["bs"], shuffle=False)
-    
-    model =L.load_from_checkpoint(
-    checkpoint_path=r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index10162023_1454\Weights\lightning_logs\version_0\checkpoints\epoch=0-step=95.ckpt",
-    weights_path=r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index10162023_1454\Weights\lightning_logs\version_0\checkpoints\epoch=0-step=95.ckpt",
-    tags_csv=r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index10162023_1454\Weights\lightning_logs\version_0\metrics.csv",
-    hparams_file=r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index10162023_1454\Weights\lightning_logs\version_0\hparams.yaml",
-    on_gpu=True,
-    map_location=None)
+        test_ds, batch_size=config["train"]["bs"], shuffle=False
+    )
 
     # init trainer with whatever options
-    trainer = L.Trainer()
-
+    trainer = L.Trainer(max_epochs=1, accelerator="gpu")
     # test (pass in the model)
-    trainer.test(model)
+    trainer.test(
+        LitAngio(
+            network,
+            config["train"]["opt"],
+            config["train"]["lr"],
+            experiment,
+            overlap_pred_path,
+            gif_path,
+            csv_path,
+        ),
+        dataloaders=test_loader,
+        ckpt_path=config["data"]["test_model_checkpoint"],
+    )
+    # prediction = trainer.predict(
+    #     LitAngio(network, config["train"]["opt"], config["train"]["lr"], experiment),
+    #     dataloaders=test_loader,
+    #     ckpt_path=config["data"]["test_model_checkpoint"],
+    # )
+
+
 if __name__ == "__main__":
     main()
-
-

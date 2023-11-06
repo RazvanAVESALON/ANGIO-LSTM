@@ -1,11 +1,11 @@
-#import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import json
 import torch
 import yaml
 
-#elimina config 
+# elimina config
 config = None
 with open("config.yaml") as f:
     config = yaml.safe_load(f)
@@ -28,11 +28,10 @@ class AngioClass(torch.utils.data.Dataset):
     def csvdata(self, idx):
         patient = self.dataset_df["patient"][idx]
         acquisition = self.dataset_df["acquisition"][idx]
-        frame = self.dataset_df["frames"][idx]
         header = self.dataset_df["angio_loader_header"][idx]
         annotations = self.dataset_df["annotations_path"][idx]
 
-        return patient, acquisition, frame, header, annotations
+        return patient, acquisition, header, annotations
 
     def crop_colimator(self, frame, info, clipping_points, frame_nr):
         img = frame.astype(np.float32)
@@ -108,12 +107,19 @@ class AngioClass(torch.utils.data.Dataset):
         )
         data = np.empty((config["data"]["nr_frames"], self.nr_coordonates))
         for n in range(new_img.shape[0]):
-            if clipping_points[str(n)]:
+            if clipping_points[str(n)] :
                 data[n] = clipping_points[str(n)]
             else:
                 data[n] = [0, 0]
+                croped_colimator_img[n] = np.zeros(
+                (
+                    config["data"]["img_size"][0],
+                    config["data"]["img_size"][1],
+                )
+            )
 
         y = data / 512
+        
         x[:, 0, :, :] = croped_colimator_img[:, :, :]
         x[:, 1, :, :] = croped_colimator_img[:, :, :]
         x[:, 2, :, :] = croped_colimator_img[:, :, :]

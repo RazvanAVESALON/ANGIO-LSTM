@@ -97,13 +97,13 @@ def main():
 
     test_loader = torch.utils.data.DataLoader(
         test_ds, batch_size=config["train"]["bs"], shuffle=False)
-    trainer = L.Trainer(max_epochs=1, accelerator="gpu",default_root_dir=path)
+    trainer = L.Trainer(max_epochs=config['train']['epochs'], accelerator="gpu",default_root_dir=path)
     trainer.fit(
         LitAngio(network, config["train"]["opt"], config["train"]["lr"], experiment),
         train_loader,
         valid_loader,
     )
-    trainer.test(LitAngio, dataloaders=test_loader)
+    trainer.test(LitAngio(network, config["train"]["opt"], config["train"]["lr"], experiment), dataloaders=test_loader)
 
 if __name__ == "__main__":
     main()
