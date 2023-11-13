@@ -51,26 +51,28 @@ def main():
     f.write(yml_data)
     f.close()
 
-    pixels = T.Compose(
-        [
-            TR.ToTensord(keys="img"),
-        ]
-    )
-    geometric_t = A.Compose(
-        [
-            A.Resize(
-                height=config["data"]["img_size"][0],
-                width=config["data"]["img_size"][1],
-            )
-        ],
-        keypoint_params=A.KeypointParams(format="yx", remove_invisible=False),
-    )
+    pixel_t=A.Compose([
+        A.CLAHE(clip_limit=config['train']['clip_limit'], tile_grid_size=config['train']['tile_grid_size'], always_apply=False, p=config['train']['p_clahe']),
+        A.GaussianBlur(blur_limit=config['train']['blur_limit'], sigma_limit=config['train']['sigma_limit'], always_apply=False, p=config['train']['p_gauss_blur']),
+        A.RandomGamma(gamma_limit=config['train']['gamma_limit'], eps=None, always_apply=False, p=config['train']['p']),
+        
+        ],keypoint_params=A.KeypointParams(format='yx', remove_invisible=False))
 
+
+    geometric_t= A.Compose([
+        A.Rotate(limit=config['train']['rotate_range']),
+        A.Resize(height=config['data']['img_size'][0] , width=config['data']['img_size'][1])
+    ],keypoint_params=A.KeypointParams(format='yx', remove_invisible=False))
+
+    geometric_resize= A.Compose([
+        A.Resize(height=config['data']['img_size'][0] , width=config['data']['img_size'][1])
+    ],keypoint_params=A.KeypointParams(format='yx', remove_invisible=False))
     dataset_df = pd.read_csv(config["data"]["dataset_csv"])
 
     train_df = dataset_df.loc[dataset_df["subset"] == "train", :]
     train_ds = AngioClass(
         train_df, img_size=config["data"]["img_size"], geometrics_transforms=geometric_t
+        ,pixel_transforms=pixel_t
     )
     train_loader = torch.utils.data.DataLoader(
         train_ds, batch_size=config["train"]["bs"], shuffle=True, drop_last=True
@@ -79,7 +81,7 @@ def main():
     valid_df = dataset_df.loc[dataset_df["subset"] == "valid", :]
     print(valid_df)
     valid_ds = AngioClass(
-        valid_df, img_size=config["data"]["img_size"], geometrics_transforms=geometric_t
+        valid_df, img_size=config["data"]["img_size"], geometrics_transforms=geometric_resize
     )
     valid_loader = torch.utils.data.DataLoader(
         valid_ds, batch_size=config["train"]["bs"], shuffle=False, drop_last=True

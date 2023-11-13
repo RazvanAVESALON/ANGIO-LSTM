@@ -52,15 +52,26 @@ class AngioClass(torch.utils.data.Dataset):
             bifurcation_point = clipping_points[str(frame_nr)]
             bifurcation_point[1] = bifurcation_point[1] - info["ImageEdges"][0]
             bifurcation_point[0] = bifurcation_point[0] - info["ImageEdges"][2]
+            
             if self.geometrics_transforms != None:
-                list_of_keypoints = []
-                list_of_keypoints.append(tuple(bifurcation_point))
-                transformed = self.geometrics_transforms(
-                    image=img_c, keypoints=list_of_keypoints
-                )
-                img_rsz = transformed["image"]
-                bifurcation_point = transformed["keypoints"][0]
+                    list_of_keypoints = []
+                    list_of_keypoints.append(tuple(bifurcation_point))
+                    transformed = self.geometrics_transforms(
+                        image=img_c, keypoints=list_of_keypoints
+                    )
+                    img_rsz = transformed["image"]
+                    bifurcation_point = transformed["keypoints"][0]
+                    
+            img_rsz=img_rsz.astype(np.uint8)
+        
+            if self.pixel_transforms != None:
 
+                list_of_keypoints=[]
+                list_of_keypoints.append(tuple(bifurcation_point))
+                transformed=self.pixel_transforms (image=img_rsz,keypoints=list_of_keypoints)
+                img_rsz=transformed['image']
+                bifurcation_point=transformed['keypoints'][0]
+                
         else:
             img_rsz = cv2.resize(img_c, self.img_size, interpolation=cv2.INTER_AREA)
 
@@ -106,19 +117,19 @@ class AngioClass(torch.utils.data.Dataset):
             )
         )
         data = np.empty((config["data"]["nr_frames"], self.nr_coordonates))
+        input_memory= 
+        data_memory=
         for n in range(new_img.shape[0]):
             if clipping_points[str(n)] :
                 data[n] = clipping_points[str(n)]
+                input_memory= croped_colimator_img[n]
+                data_memory= clipping_points[str(n)]
             else:
-                data[n] = [0, 0]
-                croped_colimator_img[n] = np.zeros(
-                (
-                    config["data"]["img_size"][0],
-                    config["data"]["img_size"][1],
-                )
-            )
+                data[n] = data_memory
+                croped_colimator_img[n] = input_memory
 
         y = data / 512
+      
         
         x[:, 0, :, :] = croped_colimator_img[:, :, :]
         x[:, 1, :, :] = croped_colimator_img[:, :, :]
