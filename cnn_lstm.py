@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import resnet18 , resnet34
+from torchvision.models import resnet18 , resnet34, resnet101
 
 
 class CNNLSTM(nn.Module):
     def __init__(self, num_classes=2):
         super(CNNLSTM, self).__init__()
-        self.resnet = resnet34(pretrained=True)
+        self.resnet = torch.load(r"D:\Angio\ANGIO-LSTM\Experimente\my_model05182023_0622_e350.pt")
         self.resnet.fc = nn.Sequential(nn.Linear(self.resnet.fc.in_features, 300))
         self.lstm = nn.LSTM(
             input_size=300, hidden_size=256, num_layers=3, batch_first=True
@@ -26,9 +26,12 @@ class CNNLSTM(nn.Module):
                 x = self.resnet(x_3d[:, t, :, :, :])
             out, hidden = self.lstm(x.unsqueeze(1), hidden)
             x = self.fc1(out[:, -1, :])
+            x = F.dropout(x)
             x = F.relu(x)
             x = self.fc2(x)
+            x = F.sigmoid(x)
             seq[:, t, :] = x
+         
 
         return seq
 

@@ -1,9 +1,9 @@
 data:
   dataset_csv: D:\\Angio\\ANGIO-LSTM\\CSV_experimental.csv
-  data_path: D:\\date=angiografii\\data\\data
+  data_path: "D:\\date=angiografii - Copy\\data\\data"
   annotation: clipping_points.json
-  parent_dir_exp: "D:\\Angio\\ANGIO-LSTM\\Experimente\\Experiment_Dice_index10302023_1124"
-  test_model_checkpoint: "D:\\Angio\\ANGIO-LSTM\\Experimente\\Experiment_Dice_index10302023_1124\\Weights\\lightning_logs\\version_0\\checkpoints\\epoch=599-step=13800.ckpt"
+  parent_dir_exp: "D:\\Angio\\ANGIO-LSTM\\Experimente\\Experiment_Dice_index12132023_0242"
+  test_model_checkpoint: "D:\\Angio\\ANGIO-LSTM\\Experimente\\Experiment_Dice_index12132023_0242\\Weights\\epoch=161-step=61884.ckpt"
   img_size: [512,512]
   nr_frames: 12 
   split_per:
@@ -12,22 +12,27 @@ data:
     test: 0.1
 
 train:
-  bs: 32
+  bs: 2
   lr: 0.001
-  opt: RMSprop
+  opt: Adam
   epochs: 600
   rotate_prob: 0.5
-  rotate_range: 1.57
-  flip_prob : 0.5
-  flip_spatial_axis: 1
-  sigma: [0.1,1] 
-  gibbs_noise_prob: 0.5
-  contrast_prob: 0.5
-  contrast_gamma: [1.5,2]
-  alpha: [0.6,0.8]
-  zoom_prob: 0.5
-  min_zoom: 1.3
-  max_zoom: 1.5
+  rotate_range: 35 
+  clip_limit: 4
+  tile_grid_size: [8, 8] 
+  p_clahe: 0.5
+  blur_limit: [1, 3] 
+  sigma_limit: 0
+  p_gauss_blur: 0.5
+  gamma_limit: [80, 120]
+  p: 0.5
+  coarse_max_holes: 10
+  coarse_max_height: 10
+  coarse_max_width: 10
+  fill_value: 0
+  b_limit: 5
+
+
 
 
 test:

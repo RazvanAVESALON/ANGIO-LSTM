@@ -10,18 +10,15 @@ from datetime import datetime
 from angio_class import AngioClass
 from comet_ml import Experiment
 from torchsummary import summary
-from cnn_lstm import CNNLSTM
+#from cnn_lstm import CNNLSTM
 import albumentations as A
 from lighting_train import LitAngio
 import lightning as L
-import cv2
-from skimage.color import gray2rgb
+
+
 import numpy as np
-import imageio
-import os
 
-
-# from cnn_lstm_rshp import CNNLSTM
+from cnn_lstm_rshp import CNNLSTM
 def main():
     print(f"pyTorch version {torch.__version__}")
     print(f"torchvision version {torchvision.__version__}")
@@ -71,7 +68,7 @@ def main():
     dataset_df = pd.read_csv(config["data"]["dataset_csv"])
     test_df = dataset_df.loc[dataset_df["subset"] == "test", :]
     test_ds = AngioClass(
-        test_df, img_size=config["data"]["img_size"], geometrics_transforms=geometric_t
+        test_df, img_size=config["data"]["img_size"],nr_frm=config['data']['nr_frames'], geometrics_transforms=geometric_t
     )
 
     test_loader = torch.utils.data.DataLoader(

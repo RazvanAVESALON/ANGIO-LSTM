@@ -2,9 +2,9 @@
 import pandas as pd 
 import json 
 
-df = pd.read_csv(r"D:\ai intro\Angiografii\PROIECT_ANGIOGRAFII\experiments\New folder\Experiment_MSE05222023_1457\Test05302023_1420\CSV_TEST.csv")
+df = pd.read_csv(r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index12132023_0242\Test01042024_1447\Statistics.csv")
 
-print(df['MeanMSE'].mean() , df['Distance'].mean()) 
+print(df['Distance'].mean()) 
 
 list_d_2mm=[]
 list_d_5mm=[]

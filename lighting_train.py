@@ -15,7 +15,7 @@ import pathlib as pt
 import os
 import json
 class LitAngio(L.LightningModule):
-    def __init__(self,network, opt_ch, lr,experiment,overlap_pth=None,gif_path=None,csv_path=None):
+    def __init__(self,network, opt_ch, lr,experiment,overlap_pth=None,gif_path=None,csv_path=None,):
         super().__init__()
         self.network = network
         self.opt_ch = opt_ch
@@ -24,17 +24,23 @@ class LitAngio(L.LightningModule):
         self.overlap_pth= overlap_pth
         self.gif_path=gif_path
         self.csv_path=csv_path
-        self.dict={"Patient":[], "Acq":[],"Frame":[],"Distance":[]}
+        self.dict={"Patient":[], "Acq":[],"Frame":[],"Distance":[],"Bifurcation_point":[],"Prediction":[],"Img":[]}
+        
+
     
     def configure_optimizers(self):
         if self.opt_ch == "Adam":
             opt = torch.optim.Adam(self.parameters(), lr=self.lr)
+            scheduler = torch.optim.lr_scheduler.CyclicLR(opt,base_lr=0.000001, max_lr=0.00000001,cycle_momentum=False)
         elif self.opt_ch == "SGD":
-            opt = torch.optim.SGD(self.parameters(), lr=self.lr)
+            opt = torch.optim.SGD(self.parameters(), lr=self.lr,momentum=0.9)
+            scheduler = torch.optim.lr_scheduler.CyclicLR(opt,base_lr=0.05, max_lr=0.3,cycle_momentum=True)
         elif self.opt_ch == "RMSprop":
             opt = torch.optim.RMSprop(self.parameters(), lr=self.lr)
+            #scheduler = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=3*self.lr, total_steps=self.trainer.estimated_stepping_batches)
 
-        return opt
+        return {"optimizer": opt,
+               "lr_scheduler": {"scheduler": scheduler}}
 
     def overlap_3_chanels(self,gt, pred, input):
         # print(input.shape, input.dtype, input.min(), input.max())
@@ -67,7 +73,7 @@ class LitAngio(L.LightningModule):
     
     def gif_maker(self,prediction,inputs,targets,index,test_loader,overlap_pred_path,gif_path):
         for step, (input_acq, gt, pred) in enumerate(zip(inputs, targets, prediction)):
-                patient, acquisition, header, annotations = test_loader.dataset.csvdata(
+                patient, acquisition, header, annotations,img_pth = test_loader.dataset.csvdata(
                     (index[step].cpu().numpy())
                 )
                 
@@ -89,6 +95,9 @@ class LitAngio(L.LightningModule):
                         self.dict["Frame"].append(frame_index)
                         self.dict['Patient'].append(patient)
                         self.dict['Acq'].append(acquisition)
+                        self.dict['Bifurcation_point'].append(bf_gt)
+                        self.dict['Prediction'].append(bf_pred)
+                        self.dict['Img'].append(img_pth)
                     else:
                         distance=calculate_distance(gt_coords_mm,pred_cord_mm)
                     
@@ -96,6 +105,9 @@ class LitAngio(L.LightningModule):
                         self.dict["Frame"].append(frame_index)
                         self.dict['Patient'].append(patient)
                         self.dict['Acq'].append(acquisition)
+                        self.dict['Bifurcation_point'].append(bf_gt)
+                        self.dict['Prediction'].append(bf_pred)
+                        self.dict['Img'].append(img_pth)
 
                     
                     black = np.zeros(frame.shape[1:3])
@@ -106,7 +118,6 @@ class LitAngio(L.LightningModule):
                     masked_pred = cv2.circle(
                         black2, (int(bf_pred[1]), int(bf_pred[0])), 5, [255, 255, 255], -1
                     )
-                    print (frame.shape,masked_pred.shape,masked_gt.shape)
                     overlap_colors = self.overlap_3_chanels(masked_gt, masked_pred, frame[0])
 
                     frame = str(frame_index)
@@ -129,9 +140,15 @@ class LitAngio(L.LightningModule):
     
     def training_step(self, train_batch, batch_idx):
         inputs, targets, idx = train_batch
+        
+        # if self.current_epoch <=10 : 
+        #     self.network.resnet.requires_grad_(False)
+
+        # else: self.network.resnet.requires_grad_(True)
+            
+ 
         output = self.network(inputs)
         output = output.to("cuda")
-        print(output.type, targets.type)
         criterion = nn.MSELoss().to("cuda")
         loss = criterion(output, targets)
         mse_metric = MeanSquaredError().to("cuda")
@@ -156,12 +173,10 @@ class LitAngio(L.LightningModule):
         inputs, target, idx = valid_batch
         output = self.network(inputs)
         output = output.to("cuda")
-        print(output.shape, target.shape)
         criterion = nn.MSELoss().to("cuda")
         loss_val = criterion(output, target)
         mse_metric = MeanSquaredError().to("cuda")
         mse_val = mse_metric(output, target)
-        print(output.shape, target.shape)
         self.log("val_loss", loss_val)
         self.log("mse_loss", mse_val)
         self.experimet.log_metrics({f"Validation_MSE": mse_val,
@@ -174,7 +189,6 @@ class LitAngio(L.LightningModule):
         self.network.eval()
         output = self.network(inputs)
         output = output.to("cuda")
-        print(output.shape, targets.shape)
         criterion = nn.MSELoss().to("cuda")
         loss_test = criterion(output, targets)
         mse_metric = MeanSquaredError().to("cuda")
@@ -187,6 +201,7 @@ class LitAngio(L.LightningModule):
     def on_test_end(self):
         df = pd.DataFrame(self.dict)
         df.to_csv(self.csv_path)
+    
 
     def predict_step(self, predict_batch, batch_idx):
         inputs,targets , idx = predict_batch
