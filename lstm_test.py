@@ -10,7 +10,7 @@ from datetime import datetime
 from angio_class import AngioClass
 from comet_ml import Experiment
 from torchsummary import summary
-#from cnn_lstm import CNNLSTM
+from cnn_lstm import CNNLSTM
 import albumentations as A
 from lighting_train import LitAngio
 import lightning as L
@@ -18,7 +18,7 @@ import lightning as L
 
 import numpy as np
 
-from cnn_lstm_rshp import CNNLSTM
+#from cnn_lstm_rshp import CNNLSTM
 def main():
     print(f"pyTorch version {torch.__version__}")
     print(f"torchvision version {torchvision.__version__}")

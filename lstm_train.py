@@ -127,7 +127,7 @@ def main():
         model,
         train_loader,
         valid_loader,
-        ckpt_path=r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index01032024_1429\Weights\epoch=9-step=3820.ckpt"
+        ckpt_path=r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index01072024_1443\Weights\epoch=478-step=182978.ckpt"
         
         
     )

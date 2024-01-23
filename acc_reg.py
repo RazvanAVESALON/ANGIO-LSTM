@@ -2,7 +2,7 @@
 import pandas as pd 
 import json 
 
-df = pd.read_csv(r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index12132023_0242\Test01042024_1447\Statistics.csv")
+df = pd.read_csv(r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index01032024_1545\Test01122024_1619\Statistics.csv")
 
 print(df['Distance'].mean()) 
 

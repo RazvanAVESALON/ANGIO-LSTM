@@ -32,15 +32,15 @@ def overlap_3_chanels(pred, input):
 
 def main():
 
-    csv_seq= pd.read_csv(r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index12102023_2106\Test01022024_1635\Statistics.csv")
-    csv_rshp= pd.read_csv(r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index12132023_0242\Test01042024_1447\Statistics.csv")
+    csv_seq= pd.read_csv(r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index01032024_1545\Test01122024_1619\Statistics.csv")
+    csv_rshp= pd.read_csv(r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index01072024_1443\Test01122024_1616\Statistics.csv")
     config = None
     with open("config.yaml") as f:
         config = yaml.safe_load(f)
     directory = f"Gif_overlap_Combined{datetime.now().strftime('%m%d%Y_%H%M')}"
     dir2="pred"
-    parent_dir_seq = r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index12102023_2106\Test01022024_1635"
-    parent_dir_rshp=   r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index12132023_0242\Test01042024_1447"
+    parent_dir_seq = r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index01032024_1545\Test01122024_1619"
+    parent_dir_rshp=   r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index01072024_1443\Test01122024_1616"
     test_path_seq = pt.Path(parent_dir_seq) / directory
     test_path_seq.mkdir(exist_ok=True)
     test_path_rshp = pt.Path(parent_dir_rshp) / directory
