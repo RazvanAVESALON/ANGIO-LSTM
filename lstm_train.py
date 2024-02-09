@@ -10,7 +10,7 @@ import torchmetrics
 from datetime import datetime
 from angio_class import AngioClass
 from torchsummary import summary
-#from cnn_lstm import CNNLSTM
+from cnn_lstm import CNNLSTM
 import albumentations as A
 from lighting_train import LitAngio
 import lightning as L
@@ -18,7 +18,7 @@ from lightning.pytorch.tuner import Tuner
 import pytorch_lightning as pl 
 from lightning.pytorch.callbacks import ModelCheckpoint
 import matplotlib.pyplot as plt 
-from cnn_lstm_rshp import CNNLSTM
+#from cnn_lstm_rshp import CNNLSTM
 
 def main():
     print(f"pyTorch version {torch.__version__}")
@@ -45,7 +45,7 @@ def main():
     path = pt.Path(exp_path) / dir
     path.mkdir(exist_ok=True)
     ok = True
-    network = CNNLSTM(num_classes=2)
+    network = CNNLSTM(pretrained_net=config['data']['pretrained_net'],net=config['train']['net'],num_classes=2)
     summary(network)
     experiment.log_parameters(config)
 
@@ -127,8 +127,7 @@ def main():
         model,
         train_loader,
         valid_loader,
-        ckpt_path=r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index01072024_1443\Weights\epoch=478-step=182978.ckpt"
-        
+        #ckpt_path=r"D:\Angio\ANGIO-LSTM\Experimente\Experiment_Dice_index02052024_1948\Weights\epoch=142-step=54626.ckpt"
         
     )
     #trainer.test(LitAngio(network, config["train"]["opt"], config["train"]["lr"], experiment), dataloaders=test_loader)

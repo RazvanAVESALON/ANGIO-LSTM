@@ -2,8 +2,9 @@ data:
   dataset_csv: D:\\Angio\\ANGIO-LSTM\\CSV_experimental.csv
   data_path: "D:\\date=angiografii - Copy\\data\\data"
   annotation: clipping_points.json
-  parent_dir_exp: "D:\\Angio\\ANGIO-LSTM\\Experimente\\Experiment_Dice_index01032024_1545"
-  test_model_checkpoint: "D:\\Angio\\ANGIO-LSTM\\Experimente\\Experiment_Dice_index01032024_1545\\Weights\\epoch=599-step=229200.ckpt"
+  pretrained_net: "D:\\Angio\\ANGIO-LSTM\\Experimente\\my_model05182023_0622_e350.pt"
+  parent_dir_exp: "D:\\Angio\\ANGIO-LSTM\\Experimente\\Experiment_Dice_index01282024_1514"
+  test_model_checkpoint: "D:\\Angio\\ANGIO-LSTM\\Experimente\\Experiment_Dice_index01282024_1514\\Weights\\epoch=594-step=227290.ckpt"
   img_size: [512,512]
   nr_frames: 12 
   split_per:
@@ -12,9 +13,10 @@ data:
     test: 0.1
 
 train:
-  bs: 2
+  bs: 16
   lr: 0.001
   opt: Adam
+  net: GRU
   epochs: 1200
   rotate_prob: 0.5
   rotate_range: 35 

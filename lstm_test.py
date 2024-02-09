@@ -10,15 +10,12 @@ from datetime import datetime
 from angio_class import AngioClass
 from comet_ml import Experiment
 from torchsummary import summary
-from cnn_lstm import CNNLSTM
+#from cnn_lstm import CNNLSTM
 import albumentations as A
 from lighting_train import LitAngio
 import lightning as L
-
-
 import numpy as np
-
-#from cnn_lstm_rshp import CNNLSTM
+from cnn_lstm_rshp import CNNLSTM
 def main():
     print(f"pyTorch version {torch.__version__}")
     print(f"torchvision version {torchvision.__version__}")
@@ -46,7 +43,7 @@ def main():
     overlap_pred_path = pt.Path(test_path) / r"Predictii_Overlap"
     overlap_pred_path.mkdir(exist_ok=True)
 
-    network = CNNLSTM(num_classes=2)
+    network = CNNLSTM(pretrained_net=config['data']['pretrained_net'],net=config['train']['net'],num_classes=2)
     summary(network)
     experiment.log_parameters(config)
 
