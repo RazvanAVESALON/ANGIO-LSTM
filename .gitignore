@@ -391,3 +391,46 @@ lightning_logs/version_237/hparams.yaml
 lightning_logs/version_237/metrics.csv
 lightning_logs/version_238/hparams.yaml
 lightning_logs/version_238/metrics.csv
+.lr_find_1c6ebf85-bfec-4c9c-a8e4-5649cf9fa20c.ckpt
+.lr_find_1e0e8fac-c209-4947-b586-34e17dd6bcc3.ckpt
+.lr_find_5db62fd7-630b-4d70-812d-f6ea56fc7899.ckpt
+.lr_find_61b0a4b7-2ec0-400d-aea2-73483490c1c7.ckpt
+.lr_find_b4de2a70-ac04-423a-b380-e87eab25d010.ckpt
+.cometml-runs/835d115fa2784532adeef07e65706a2c-WJiEEf.zip
+.cometml-runs/287236a8a45e4069aafdd4594fef052a-kKDvFY.zip
+.cometml-runs/bfaca23f26a74e7a906f14e5b1050a5b-LwRXgE.zip
+__pycache__/cnn_lstm.cpython-39.pyc
+lightning_logs/version_239/hparams.yaml
+lightning_logs/version_240/hparams.yaml
+lightning_logs/version_241/hparams.yaml
+lightning_logs/version_242/hparams.yaml
+lightning_logs/version_242/metrics.csv
+lightning_logs/version_243/hparams.yaml
+lightning_logs/version_244/hparams.yaml
+lightning_logs/version_245/hparams.yaml
+lightning_logs/version_246/hparams.yaml
+lightning_logs/version_246/metrics.csv
+lightning_logs/version_250/hparams.yaml
+lightning_logs/version_250/metrics.csv
+lightning_logs/version_251/hparams.yaml
+lightning_logs/version_251/metrics.csv
+lightning_logs/version_252/hparams.yaml
+lightning_logs/version_252/metrics.csv
+lightning_logs/version_253/hparams.yaml
+lightning_logs/version_253/metrics.csv
+lightning_logs/version_254/hparams.yaml
+lightning_logs/version_255/hparams.yaml
+lightning_logs/version_255/metrics.csv
+lightning_logs/version_257/hparams.yaml
+lightning_logs/version_257/metrics.csv
+lightning_logs/version_258/hparams.yaml
+lightning_logs/version_258/metrics.csv
+lightning_logs/version_259/hparams.yaml
+lightning_logs/version_260/hparams.yaml
+lightning_logs/version_260/metrics.csv
+RETELE Keypoint Detection/duan2019.pdf
+RETELE Keypoint Detection/HR-NET-48.pdf
+RETELE Keypoint Detection/MSPN+.pdf
+RETELE Keypoint Detection/OpenPose.pdf
+RETELE Keypoint Detection/RSN.pdf
+RETELE Keypoint Detection/Transformer Network.pdf
