@@ -18,7 +18,7 @@ from lightning.pytorch.tuner import Tuner
 import pytorch_lightning as pl 
 from lightning.pytorch.callbacks import ModelCheckpoint
 import matplotlib.pyplot as plt 
-#from cnn_lstm_rshp import CNNLSTM
+from cnn_lstm_rshp import CNNLSTM
 
 def main():
     print(f"pyTorch version {torch.__version__}")

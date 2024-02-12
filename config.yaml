@@ -3,8 +3,8 @@ data:
   data_path: "D:\\date=angiografii - Copy\\data\\data"
   annotation: clipping_points.json
   pretrained_net: "D:\\Angio\\ANGIO-LSTM\\Experimente\\my_model05182023_0622_e350.pt"
-  parent_dir_exp: "D:\\Angio\\ANGIO-LSTM\\Experimente\\Experiment_Dice_index01282024_1514"
-  test_model_checkpoint: "D:\\Angio\\ANGIO-LSTM\\Experimente\\Experiment_Dice_index01282024_1514\\Weights\\epoch=594-step=227290.ckpt"
+  parent_dir_exp: "D:\\Angio\\ANGIO-LSTM\\Experimente\\Experiment_Dice_index02092024_1325"
+  test_model_checkpoint: "D:\\Angio\\ANGIO-LSTM\\Experimente\\Experiment_Dice_index02092024_1325\\Weights\\epoch=617-step=29046.ckpt"
   img_size: [512,512]
   nr_frames: 12 
   split_per:
@@ -13,7 +13,7 @@ data:
     test: 0.1
 
 train:
-  bs: 16
+  bs: 2
   lr: 0.001
   opt: Adam
   net: GRU

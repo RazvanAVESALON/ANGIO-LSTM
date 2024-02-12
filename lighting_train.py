@@ -141,10 +141,10 @@ class LitAngio(L.LightningModule):
     def training_step(self, train_batch, batch_idx):
         inputs, targets, idx = train_batch
         
-        # if self.current_epoch <=10 : 
-        #     self.network.resnet.requires_grad_(False)
+        if self.current_epoch <=10 : 
+            self.network.resnet.requires_grad_(False)
 
-        # else: self.network.resnet.requires_grad_(True)
+        else: self.network.resnet.requires_grad_(True)
             
  
         output = self.network(inputs)
