@@ -434,3 +434,13 @@ RETELE Keypoint Detection/MSPN+.pdf
 RETELE Keypoint Detection/OpenPose.pdf
 RETELE Keypoint Detection/RSN.pdf
 RETELE Keypoint Detection/Transformer Network.pdf
+lightning_logs/version_261/hparams.yaml
+lightning_logs/version_261/metrics.csv
+lightning_logs/version_262/events.out.tfevents.1707663985.BAVBN535C
+lightning_logs/version_262/hparams.yaml
+lightning_logs/version_263/events.out.tfevents.1707664514.BAVBN535C
+lightning_logs/version_263/hparams.yaml
+lightning_logs/version_264/events.out.tfevents.1707664979.BAVBN535C
+lightning_logs/version_264/hparams.yaml
+lightning_logs/version_265/events.out.tfevents.1707729481.BAVBN535C
+lightning_logs/version_265/hparams.yaml
